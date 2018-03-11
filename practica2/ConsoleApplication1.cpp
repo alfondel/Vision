@@ -14,6 +14,8 @@
 using namespace cv;
 using namespace std;
 
+vector<vector<Point> > contours;
+
 //Umbralización en hsv
 void umbralizar(Mat imagen) {
 	MatIterator_<Vec3b> it, end;
@@ -72,7 +74,7 @@ void contornos(Mat imagen) {
 	RNG rng(12345);
 	Mat gray;
 	Mat canny_output;
-	vector<vector<Point> > contours;
+	
 	vector<Vec4i> hierarchy;
 	cvtColor(imagen, gray, CV_BGR2GRAY);
 	/// Detect edges using canny
@@ -124,7 +126,20 @@ void dilation(Mat src, Mat dilation_dst, int dilation_elem, int dilation_size)
 	dilate(src, dilation_dst, element);
 	imshow("Dilation Demo", dilation_dst);
 }
+void descriptores() {
 
+	
+	for (size_t i = 0; i < contours.size(); i++) {
+	
+		double hu[7];
+
+		double area = contourArea(contours[i]);
+		double perimeter = arcLength(contours[i], true);
+		HuMoments(moments(contours[i], false), hu);
+		
+		cout << "Objeto " << i << ", area:" << area << ", perimetro: " << perimeter << ", hu1: " << hu[0] << ", hu2: " << hu[1] << ", hu3: " << hu[2] << endl;
+	}
+}
 int main()
 {
 	
@@ -136,9 +151,8 @@ int main()
 	umbralizarOTSU(image);
 	dilation(image, image, 1, 5);
 	erosion(image, image, 1, 5);
-
-	
 	contornos(image);
+	descriptores();
 	waitKey(0);
 
 	return 0;
