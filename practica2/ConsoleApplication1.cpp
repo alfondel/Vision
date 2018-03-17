@@ -161,7 +161,7 @@ vector<vector<double>> descriptores() {
 
 void mahalannobis(vector<double> valores) {
 	ifstream fichero;
-	double minDist = 20;
+	double minDist = 100;
 	int tipo = -1;
 	fichero.open("objetos.txt");
 	vector<double> total(5);
