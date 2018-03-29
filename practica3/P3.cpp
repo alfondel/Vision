@@ -15,7 +15,8 @@
 #include <chrono>         // std::chrono::seconds
 #include <vector>
 #include <math.h>
-
+#include <string.h>
+#include <stdio.h>
 using namespace cv;
 using namespace std;
 
@@ -35,20 +36,27 @@ void filtroGauss(Mat src, float t) {
 
 int main(int argc, char * argv[]) {
 
-	string file;
+	string file="";
 	string program = argv[0];
-	string err = "USE: "+ program +" f <filename>\n";
-	if (argc < 1) {
+	string err = "USE: "+ program +" -f <filename>\n";
+	if (argc < 3) {
 		std::cout << err;
-		
 		exit(1);
 	}
-	file = argv[2];
+	for (int i = 0; i < argc; i++) {
+		if (strcmp(argv[i],"-f") == 0) {
+			file = argv[i+1];
+		}
+		
+	}
 
+	
+	//Inicio del programa
 	Mat image = imread(file, CV_LOAD_IMAGE_COLOR);
 
 	imshow("Imagen", image);
 	
+	filtroGauss(image, 1);
 	//Para sobel https://docs.opencv.org/2.4/doc/tutorials/imgproc/imgtrans/sobel_derivatives/sobel_derivatives.html
 
 	//Finish program
