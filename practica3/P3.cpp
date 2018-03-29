@@ -6,7 +6,7 @@
 		Daniel Martinez Martinez - 538798
 */
 
-
+#define _USE_MATH_DEFINES
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
@@ -14,13 +14,30 @@
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>         // std::chrono::seconds
 #include <vector>
+#include <math.h>
+
+using namespace cv;
+using namespace std;
+
+
+void filtroGauss(Mat src, float t) {
+	MatIterator_<Vec3b> it, end;
+	int MAX_KERNEL_LENGTH = 2;
+	Mat dst;
+	for (int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2)
+	{
+		GaussianBlur(src, dst, Size(i, i), 0, 0);
+	}
+	imshow("Imagen FILTRO", dst);
+}
+
 
 
 int main(int argc, char * argv[]) {
 
-	std::string file;
-	std::string program = argv[0];
-	std::string err = "USE: "+ program +" f <filename>\n";
+	string file;
+	string program = argv[0];
+	string err = "USE: "+ program +" f <filename>\n";
 	if (argc < 1) {
 		std::cout << err;
 		
@@ -28,7 +45,7 @@ int main(int argc, char * argv[]) {
 	}
 	file = argv[2];
 
-	cv::Mat image = cv::imread(file, CV_LOAD_IMAGE_COLOR);
+	Mat image = imread(file, CV_LOAD_IMAGE_COLOR);
 
 	imshow("Imagen", image);
 	
