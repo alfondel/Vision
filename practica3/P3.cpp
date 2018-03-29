@@ -22,7 +22,7 @@ using namespace std;
 
 void filtroGauss(Mat src, float t) {
 	MatIterator_<Vec3b> it, end;
-	int MAX_KERNEL_LENGTH = 2;
+	int MAX_KERNEL_LENGTH = 20;
 	Mat dst;
 	for (int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2)
 	{
