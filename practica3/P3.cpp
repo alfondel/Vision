@@ -63,7 +63,7 @@ int main(int argc, char * argv[]) {
 
 
 	//Para sobel https://docs.opencv.org/2.4/doc/tutorials/imgproc/imgtrans/sobel_derivatives/sobel_derivatives.html
-	Mat src, src_gray;
+	Mat src, src_gray,src_gau;
 	Mat grad;
 	string window_name = "Sobel Demo - Simple Edge Detector";
 	int scale = 1;
@@ -80,10 +80,10 @@ int main(int argc, char * argv[]) {
 		return -1;
 	}
 
-	GaussianBlur(src, src, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	GaussianBlur(src, src_gau, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
 	/// Convert it to gray
-	cvtColor(src, src_gray, CV_BGR2GRAY);
+	cvtColor(src_gau, src_gray, CV_BGR2GRAY);
 
 	/// Generate grad_x and grad_y
 	Mat grad_x, grad_y;
@@ -116,7 +116,24 @@ int main(int argc, char * argv[]) {
 		angulo.data[i] = directionRAD * 128 / PI;
 	}
 	imshow("Angulo", angulo);
+	
+	//DETECCION DE LINEAS 
+	Mat dst, cdst;
+	Canny(src_gray, dst, 50, 200, 3);
+	cvtColor(dst, cdst, CV_GRAY2BGR);
 
+	vector<Vec4i> lines;
+	HoughLinesP(dst, lines, 1, CV_PI / 180, 50, 50, 10);
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec4i l = lines[i];
+		line(cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
+	}
+
+	imshow("source", src);
+	imshow("detected lines", cdst);
+
+	waitKey();
 
 
 	//Finish program
