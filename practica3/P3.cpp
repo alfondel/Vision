@@ -34,7 +34,14 @@ void filtroGauss(Mat src, float t) {
 	imshow("Imagen FILTRO", dst);
 }
 
+void votar_recta(int i, int j, float tetha, float ro, int cols, vector<int> votos) {
 
+	int corte = ro / cos(tetha);		// Se calcula el corte con el eje. 
+	if (corte < cols / 2 && corte >= -cols / 2) {	// Se comprueba que corta en la imagen.
+		corte = corte + cols / 2;		// Se pone el corte en el rango.
+		votos[corte] = votos[corte] + 1;	// Se actualiza el valor.
+	}
+}
 
 int main(int argc, char * argv[]) {
 
@@ -63,7 +70,7 @@ int main(int argc, char * argv[]) {
 
 
 	//Para sobel https://docs.opencv.org/2.4/doc/tutorials/imgproc/imgtrans/sobel_derivatives/sobel_derivatives.html
-	Mat src, src_gray,src_gau;
+	Mat src, src_gray, src_gau;
 	Mat grad;
 	string window_name = "Sobel Demo - Simple Edge Detector";
 	int scale = 1;
@@ -117,18 +124,18 @@ int main(int argc, char * argv[]) {
 		angulo.data[i] = directionRAD * 128 / PI;
 	}
 	imshow("Angulo", angulo);
-	
+
 	//ELIMINAR RUIDO
 	//Eliminar ruido desde la media
 	cv::Scalar mean = cv::mean(grad);
 	Mat sinruido = grad.clone();
-	for (int i = 0; i <  sinruido.rows * sinruido.cols; i++)
+	for (int i = 0; i < sinruido.rows * sinruido.cols; i++)
 	{
 		double data = sinruido.data[i];
 		if (data < mean[0]) {
 			sinruido.data[i] = 0;
 		}
-		
+
 	}
 	imshow("Grad sin ruido", sinruido);
 	Mat sinruido2;
@@ -136,7 +143,7 @@ int main(int argc, char * argv[]) {
 
 	// Opcional aplicar otra vez pero tras ecualizar
 	mean = cv::mean(sinruido2);
-	
+
 	for (int i = 0; i < sinruido2.rows * sinruido2.cols; i++)
 	{
 		double data = sinruido2.data[i];
@@ -163,9 +170,30 @@ int main(int argc, char * argv[]) {
 
 	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
-
-
-	
+	float umbral=80.0f;
+	vector<int> votos(cdst.cols) ;
+	//VOTACION
+	for (int i = 0; i < cdst.rows; i++) {
+		for (int j = 0; j < cdst.cols;j++) {
+			if (grad.data[i,j]>umbral) {
+				float x = j - (cdst.cols / 2);
+				float y = (cdst.rows / 2)- i;
+				float tetha = angulo.data[j + (i*angulo.cols)];
+				float ro = x * cos(tetha) + y * sin(tetha);
+				votar_recta(i,j,tetha,ro, cdst.cols,votos);
+			}
+			else {
+				cout << "umbral no superado" << endl;
+			}
+		}
+	}
+	int max = 0; 
+	for (int i = 0; i < votos.size();i++) {
+		if (votos.at(i) >= max) {
+			max = i;
+		}
+	}
+	cout << "indice " << max << endl;
 
 	//Finish program
 	std::cout << "Pulsa una tecla para terminar ";
