@@ -109,6 +109,7 @@ int main(int argc, char * argv[]) {
 	addWeighted(abs_grad_x2, 0.5, abs_grad_y2, 0.5, 0, grad);
 	imshow("Magnitud del Gradiente", grad);
 
+	// Angle
 	Mat angulo = grad_x.clone();
 	for (int i = 0; i < 2 * angulo.rows * angulo.cols; i++)
 	{
@@ -117,24 +118,54 @@ int main(int argc, char * argv[]) {
 	}
 	imshow("Angulo", angulo);
 	
+	//ELIMINAR RUIDO
+	//Eliminar ruido desde la media
+	cv::Scalar mean = cv::mean(grad);
+	Mat sinruido = grad.clone();
+	for (int i = 0; i <  sinruido.rows * sinruido.cols; i++)
+	{
+		double data = sinruido.data[i];
+		if (data < mean[0]) {
+			sinruido.data[i] = 0;
+		}
+		
+	}
+	imshow("Grad sin ruido", sinruido);
+	Mat sinruido2;
+	equalizeHist(sinruido, sinruido2);
+
+	// Opcional aplicar otra vez pero tras ecualizar
+	mean = cv::mean(sinruido2);
+	
+	for (int i = 0; i < sinruido2.rows * sinruido2.cols; i++)
+	{
+		double data = sinruido2.data[i];
+		if (data < mean[0]) {
+			sinruido2.data[i] = 0;
+		}
+
+	}
+	imshow("Grad sin ruido2", sinruido2);
 	//DETECCION DE LINEAS 
-	Mat dst, cdst;
-	Canny(src_gray, dst, 50, 200, 3);
-	cvtColor(dst, cdst, CV_GRAY2BGR);
+	//Mat dst, cdst;
+	Mat cdst;
+	//Canny(src_gray, dst, 50, 200, 3);
+	//cvtColor(dst, cdst, CV_GRAY2BGR);
+	cvtColor(sinruido2, cdst, CV_GRAY2BGR);
 
 	vector<Vec4i> lines;
-	HoughLinesP(dst, lines, 1, CV_PI / 180, 50, 50, 10);
+	HoughLinesP(sinruido2, lines, 1, CV_PI / 180, 50, 50, 10);
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		Vec4i l = lines[i];
 		line(cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
 	}
 
-	imshow("source", src);
+	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
 
-	waitKey();
 
+	
 
 	//Finish program
 	std::cout << "Pulsa una tecla para terminar ";
