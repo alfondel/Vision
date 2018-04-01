@@ -182,9 +182,6 @@ int main(int argc, char * argv[]) {
 				float ro = x * cos(tetha) + y * sin(tetha);
 				votar_recta(i,j,tetha,ro, cdst.cols,votos);
 			}
-			else {
-				cout << "umbral no superado" << endl;
-			}
 		}
 	}
 	int max = 0; 
