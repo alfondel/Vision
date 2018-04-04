@@ -34,13 +34,31 @@ void filtroGauss(Mat src, float t) {
 	imshow("Imagen FILTRO", dst);
 }
 
-void votar_recta(int i, int j, float tetha, float ro, int cols, vector<int> votos) {
+void votar_recta( float tetha, float ro, int cols, vector<int> votos) {
 
-	int corte = ro / cos(tetha);		// Se calcula el corte con el eje. 
+	int corte = ro / cosf(tetha);		// Se calcula el corte con el eje X. 
 	if (corte < cols / 2 && corte >= -cols / 2) {	// Se comprueba que corta en la imagen.
 		corte = corte + cols / 2;		// Se pone el corte en el rango.
 		votos[corte] = votos[corte] + 1;	// Se actualiza el valor.
 	}
+}
+
+int votar_rectas(Vec4i linea) {
+	int x1 = linea[0];
+	int y1 = linea[1];
+	int x2 = linea[2];
+	int y2 = linea[3];
+	int x3 = 0;
+	int y3 = 225;
+	int x4 = 500;
+	int y4 = 225;
+	if (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4))!=0) {
+		int pos = (((x1*y2 - y1 * x2)*(x3 - x4)) - ((x1 - x2)*(x3*y4 - y3 * x4))) / (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)));
+		if (pos>=0 && pos<500) {
+			return pos;
+		}
+	}
+	return -1;
 }
 
 int main(int argc, char * argv[]) {
@@ -170,23 +188,30 @@ int main(int argc, char * argv[]) {
 
 	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
-	float umbral=80.0f;
-	vector<int> votos(cdst.cols) ;
+	float umbral=80;
+	vector<int> votos(500) ;
 	//VOTACION
-	for (int i = 0; i < cdst.rows; i++) {
+	/*for (int i = 0; i < cdst.rows; i++) {
 		for (int j = 0; j < cdst.cols;j++) {
-			if (grad.data[i,j]>umbral) {
+			if (grad.at<uchar>(i,j)>umbral) {
 				float x = j - (cdst.cols / 2);
 				float y = (cdst.rows / 2)- i;
 				float tetha = angulo.data[j + (i*angulo.cols)];
-				float ro = x * cos(tetha) + y * sin(tetha);
-				votar_recta(i,j,tetha,ro, cdst.cols,votos);
+				float ro = x * cosf(tetha) + y * sinf(tetha);
+				votar_recta(tetha,ro, cdst.cols,votos);
 			}
+		}
+	}*/
+	for (Vec4i linea : lines) {
+		int voto = votar_rectas(linea);
+		if (voto > -1) {
+			votos[voto] = votos[voto]+1;
 		}
 	}
 	int max = 0; 
 	for (int i = 0; i < votos.size();i++) {
 		if (votos.at(i) >= max) {
+			cout << "votos " << votos.at(i) << endl;
 			max = i;
 		}
 	}
