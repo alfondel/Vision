@@ -100,8 +100,6 @@ int main(int argc, char * argv[]) {
 
 	filtroGauss(image, 1);
 
-
-
 	//Para sobel https://docs.opencv.org/2.4/doc/tutorials/imgproc/imgtrans/sobel_derivatives/sobel_derivatives.html
 	Mat src, src_gray, src_gau;
 	Mat grad;
@@ -119,8 +117,9 @@ int main(int argc, char * argv[]) {
 	{
 		return -1;
 	}
+	int sigma = 3;
 
-	GaussianBlur(src, src_gau, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	GaussianBlur(src, src_gau, Size(sigma, sigma), 0, 0, BORDER_DEFAULT);
 
 	/// Convert it to gray
 	cvtColor(src_gau, src_gray, CV_BGR2GRAY);
@@ -157,7 +156,6 @@ int main(int argc, char * argv[]) {
 		angulo.data[i] = directionRAD * 128 / PI;
 	}
 	imshow("Angulo", angulo);
-
 	//ELIMINAR RUIDO
 	//Eliminar ruido desde la media
 	cv::Scalar mean = cv::mean(grad);
@@ -208,31 +206,26 @@ int main(int argc, char * argv[]) {
 	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
 
-	float umbral = 80;
+	float umbral = 50;
 	vector<int> votos2(500);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
 		for (int j = 0; j < cdst.cols; j++) {
 			if (grad.at<uchar>(i, j)> umbral) {
-				float tetha = angulo.data[j + (i*angulo.cols)];
-				//float ro = x * cosf(tetha) + y * sinf(tetha);
+				float tetha = angulo.data[j + (i*angulo.cols)]*128/PI;
 				//utilizamos dist para medir la distancia a los ejes X e Y y comprobar si una recta es vertical u horizontal
 				float dist = cosf(tetha);
+
 				if (dist < 0) {
 					dist = -dist;
 				}
-				if(dist>0.01 && dist<0.99){
+				if(dist>0.1 && dist<0.9){
 					int x1 = j;
 					int y1 = i;
 					int x2 = 10 * cosf(tetha);
 					int y2 = 10 * sinf(tetha);
 					Vec4i linea = Vec4i(x1, y1, x2, y2);
 					int voto = votar_rectas(linea);
-
-					/*int x = j - cdst.cols;
-					int y = cdst.rows - i;
-					float ro = (x * cosf(tetha)) + (y * sinf(tetha));
-					int voto = votar_recta(tetha, ro, cdst.cols);*/
 					if (voto > -1) {
 						votos2[voto] = votos2[voto] + 1;
 					}
@@ -254,7 +247,6 @@ int main(int argc, char * argv[]) {
 	int indice = 0;
 	for (int i = 0; i < votos.size(); i++) {
 		double voto = votos.at(i);
-		//cout << i <<":" << voto <<"\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
 			circle(cdst, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
@@ -292,51 +284,6 @@ int main(int argc, char * argv[]) {
 	pintarX(indice,src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
-	/*
-	//Contar votos con el contorno de canny
-	//VOTACION with contour pixels de canny
-	vector<int> votos3(500);
-	for (int i = 0; i < cannyout.rows; i++) {
-		for (int j = 0; j < cannyout.cols; j++) {
-			if (cannyout.at<uchar>(i, j) > umbral) {
-
-				float tetha = angulo.data[j + (i*angulo.cols)];
-				//float ro = x * cosf(tetha) + y * sinf(tetha);
-				if (tetha - (int)(tetha / (CV_PI / 2))*(CV_PI / 2) > 0.07){
-					int x1 = j;
-					int y1 = i;
-					int x2 = 10 * cosf(tetha);
-					int y2 = 10 * sinf(tetha);
-					Vec4i linea = Vec4i(x1, y1, x2, y2);
-					int voto = votar_rectas(linea);
-					if (voto > -1) {
-						votos3[voto] = votos3[voto] + 1;
-					}
-				}
-			}
-		}
-	}
-
-	maxvotes = 0;
-	indice = 0;
-	for (int i = 0; i < votos3.size(); i++) {
-		double voto = votos3.at(i);
-		cout << i << ":" << voto << "\t";
-		//paint on cst image the points of the horizon
-		if (voto > 0) {
-			circle(cdst3, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
-		}
-
-		if (voto > maxvotes) {
-			//cout << "votos " << votos.at(i) << endl;
-			maxvotes = voto;
-			indice = i;
-		}
-	}
-	circle(cdst3, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
-	imshow("detected lines with points on horizon (contour version of canny)", cdst3);
-	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
-	*/
 	//Finish program
 	std::cout << "Pulsa una tecla para terminar ";
 	cv::waitKey(0);
