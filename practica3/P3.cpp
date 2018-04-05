@@ -177,7 +177,7 @@ int main(int argc, char * argv[]) {
 	Canny(src_gray, cannyout, 50, 200, 3);
 	cvtColor(cannyout, cannyresult, CV_GRAY2BGR);
 	cvtColor(sinruido2, cdst, CV_GRAY2BGR);
-
+	
 	vector<Vec4i> lines;
 	//HoughLinesP(sinruido2, lines, 1, CV_PI / 180, 50, 50, 10);
 	HoughLinesP(cannyout, lines, 1, CV_PI / 180, 50, 50, 10);
@@ -187,33 +187,48 @@ int main(int argc, char * argv[]) {
 		line(cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
 	}
 
+	
+	Mat cdst2 = cdst.clone();
+	Mat cdst3 = cdst.clone();
 	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
+	
 	float umbral = 80;
+	vector<int> votos2(500);
+	//VOTACION with contour pixels
+	for (int i = 0; i < cdst.rows; i++) {
+		for (int j = 0; j < cdst.cols;j++) {
+			if (grad.at<uchar>(i,j)>umbral) {
+				float tetha = angulo.data[j + (i*angulo.cols)];
+				//float ro = x * cosf(tetha) + y * sinf(tetha);
+
+				int x1 = j;
+				int y1 = i;
+				int x2 = 10 * cosf(tetha);
+				int y2 = 10 * sinf(tetha);
+				Vec4i linea = Vec4i(x1,y1,x2,y2 );
+				int voto = votar_rectas(linea);
+				if (voto > -1) {
+					votos2[voto] = votos2[voto] + 1;
+				}
+			}
+		}
+	}
+	//VOTACION WITH HoughLinesP
 	vector<int> votos(500);
-	//VOTACION
-	/*for (int i = 0; i < cdst.rows; i++) {
-	for (int j = 0; j < cdst.cols;j++) {
-	if (grad.at<uchar>(i,j)>umbral) {
-	float x = j - (cdst.cols / 2);
-	float y = (cdst.rows / 2)- i;
-	float tetha = angulo.data[j + (i*angulo.cols)];
-	float ro = x * cosf(tetha) + y * sinf(tetha);
-	votar_recta(tetha,ro, cdst.cols,votos);
-	}
-	}
-	}*/
 	for (Vec4i linea : lines) {
 		int voto = votar_rectas(linea);
 		if (voto > -1) {
 			votos[voto] = votos[voto] + 1;
 		}
 	}
+
+	//Contar votos de la primera forma
 	int maxvotes = 0;
 	int indice = 0;
 	for (int i = 0; i < votos.size(); i++) {
 		double voto = votos.at(i);
-		cout << i <<":" << voto <<"\t";
+		//cout << i <<":" << voto <<"\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
 			circle(cdst,Point(i, 225), voto,Scalar(255, 0, 0),-1,8);
@@ -229,6 +244,69 @@ int main(int argc, char * argv[]) {
 	imshow("detected lines with points on horizon", cdst);
 	cout <<"\n"<< maxvotes<<" votes at indice " << indice <<endl;
 
+	//Contar votos con el contorno
+	maxvotes = 0;
+	indice = 0;
+	for (int i = 0; i < votos2.size(); i++) {
+		double voto = votos2.at(i);
+		cout << i << ":" << voto << "\t";
+		//paint on cst image the points of the horizon
+		if (voto > 0) {
+			circle(cdst2, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
+		}
+
+		if (voto > maxvotes) {
+			//cout << "votos " << votos.at(i) << endl;
+			maxvotes = voto;
+			indice = i;
+		}
+	}
+	circle(cdst2, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
+	imshow("detected lines with points on horizon (contour version)", cdst2);
+	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
+
+
+	//Contar votos con el contorno de canny
+	//VOTACION with contour pixels de canny
+	vector<int> votos3(500);
+	for (int i = 0; i < cannyout.rows; i++) {
+		for (int j = 0; j < cannyout.cols; j++) {
+			if (cannyout.at<uchar>(i, j)>umbral) {
+				
+				float tetha = angulo.data[j + (i*angulo.cols)];
+				//float ro = x * cosf(tetha) + y * sinf(tetha);
+				int x1 = j;
+				int y1 = i;
+				int x2 = 10 * cosf(tetha);
+				int y2 = 10 * sinf(tetha);
+				Vec4i linea = Vec4i(x1, y1, x2, y2);
+				int voto = votar_rectas(linea);
+				if (voto > -1) {
+					votos3[voto] = votos3[voto] + 1;
+				}
+			}
+		}
+	}
+	
+	maxvotes = 0;
+	indice = 0;
+	for (int i = 0; i < votos3.size(); i++) {
+		double voto = votos3.at(i);
+		cout << i << ":" << voto << "\t";
+		//paint on cst image the points of the horizon
+		if (voto > 0) {
+			circle(cdst3, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
+		}
+
+		if (voto > maxvotes) {
+			//cout << "votos " << votos.at(i) << endl;
+			maxvotes = voto;
+			indice = i;
+		}
+	}
+	circle(cdst3, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
+	imshow("detected lines with points on horizon (contour version of canny)", cdst3);
+	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 	//Finish program
 	std::cout << "Pulsa una tecla para terminar ";
 	cv::waitKey(0);
