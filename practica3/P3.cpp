@@ -34,13 +34,14 @@ void filtroGauss(Mat src, float t) {
 	imshow("Imagen FILTRO", dst);
 }
 
-void votar_recta(float tetha, float ro, int cols, vector<int> votos) {
+int votar_recta(float tetha, float ro, int cols) {
 
 	int corte = ro / cosf(tetha);		// Se calcula el corte con el eje X. 
 	if (corte < cols / 2 && corte >= -cols / 2) {	// Se comprueba que corta en la imagen.
-		corte = corte + cols / 2;		// Se pone el corte en el rango.
-		votos[corte] = votos[corte] + 1;	// Se actualiza el valor.
+		corte = corte + (cols/2);		// Se pone el corte en el rango.
+		return corte;
 	}
+	return -1;
 }
 
 int votar_rectas(Vec4i linea) {
@@ -59,6 +60,20 @@ int votar_rectas(Vec4i linea) {
 		}
 	}
 	return -1;
+}
+
+void pintarX(int x, Mat mat) {
+	int y = mat.cols / 2;
+	Point p1 = Point(x, y - 10);
+	Point p2 = Point(x, y + 10);
+	Point p3 = Point(x - 10, y);
+	Point p4 = Point(x + 10, y);
+
+	// Se dibuja la X.
+	line(mat, p1, p2, CV_RGB(255, 0, 0), 4);
+	line(mat, p3, p4, CV_RGB(255, 0, 0), 4);
+	circle(mat, Point(x, y), 1, CV_RGB(255, 0, 0), 3);
+	imshow("Punto de fuga", mat);
 }
 
 int main(int argc, char * argv[]) {
@@ -173,11 +188,11 @@ int main(int argc, char * argv[]) {
 	imshow("Grad sin ruido2", sinruido2);
 	//DETECCION DE LINEAS 
 	//Mat dst, cdst;
-	Mat cdst,cannyout, cannyresult;
+	Mat cdst, cannyout, cannyresult;
 	Canny(src_gray, cannyout, 50, 200, 3);
 	cvtColor(cannyout, cannyresult, CV_GRAY2BGR);
 	cvtColor(sinruido2, cdst, CV_GRAY2BGR);
-	
+
 	vector<Vec4i> lines;
 	//HoughLinesP(sinruido2, lines, 1, CV_PI / 180, 50, 50, 10);
 	HoughLinesP(cannyout, lines, 1, CV_PI / 180, 50, 50, 10);
@@ -187,29 +202,40 @@ int main(int argc, char * argv[]) {
 		line(cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
 	}
 
-	
+
 	Mat cdst2 = cdst.clone();
 	Mat cdst3 = cdst.clone();
 	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
-	
+
 	float umbral = 80;
 	vector<int> votos2(500);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
-		for (int j = 0; j < cdst.cols;j++) {
-			if (grad.at<uchar>(i,j)>umbral) {
+		for (int j = 0; j < cdst.cols; j++) {
+			if (grad.at<uchar>(i, j)> umbral) {
 				float tetha = angulo.data[j + (i*angulo.cols)];
 				//float ro = x * cosf(tetha) + y * sinf(tetha);
+				//utilizamos dist para medir la distancia a los ejes X e Y y comprobar si una recta es vertical u horizontal
+				float dist = cosf(tetha);
+				if (dist < 0) {
+					dist = -dist;
+				}
+				if(dist>0.01 && dist<0.99){
+					int x1 = j;
+					int y1 = i;
+					int x2 = 10 * cosf(tetha);
+					int y2 = 10 * sinf(tetha);
+					Vec4i linea = Vec4i(x1, y1, x2, y2);
+					int voto = votar_rectas(linea);
 
-				int x1 = j;
-				int y1 = i;
-				int x2 = 10 * cosf(tetha);
-				int y2 = 10 * sinf(tetha);
-				Vec4i linea = Vec4i(x1,y1,x2,y2 );
-				int voto = votar_rectas(linea);
-				if (voto > -1) {
-					votos2[voto] = votos2[voto] + 1;
+					/*int x = j - cdst.cols;
+					int y = cdst.rows - i;
+					float ro = (x * cosf(tetha)) + (y * sinf(tetha));
+					int voto = votar_recta(tetha, ro, cdst.cols);*/
+					if (voto > -1) {
+						votos2[voto] = votos2[voto] + 1;
+					}
 				}
 			}
 		}
@@ -231,9 +257,9 @@ int main(int argc, char * argv[]) {
 		//cout << i <<":" << voto <<"\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
-			circle(cdst,Point(i, 225), voto,Scalar(255, 0, 0),-1,8);
+			circle(cdst, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
 		}
-		
+
 		if (voto > maxvotes) {
 			//cout << "votos " << votos.at(i) << endl;
 			maxvotes = voto;
@@ -242,7 +268,7 @@ int main(int argc, char * argv[]) {
 	}
 	circle(cdst, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon", cdst);
-	cout <<"\n"<< maxvotes<<" votes at indice " << indice <<endl;
+	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
 	//Contar votos con el contorno
 	maxvotes = 0;
@@ -263,31 +289,34 @@ int main(int argc, char * argv[]) {
 	}
 	circle(cdst2, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon (contour version)", cdst2);
+	pintarX(indice,src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
-
+	/*
 	//Contar votos con el contorno de canny
 	//VOTACION with contour pixels de canny
 	vector<int> votos3(500);
 	for (int i = 0; i < cannyout.rows; i++) {
 		for (int j = 0; j < cannyout.cols; j++) {
-			if (cannyout.at<uchar>(i, j)>umbral) {
-				
+			if (cannyout.at<uchar>(i, j) > umbral) {
+
 				float tetha = angulo.data[j + (i*angulo.cols)];
 				//float ro = x * cosf(tetha) + y * sinf(tetha);
-				int x1 = j;
-				int y1 = i;
-				int x2 = 10 * cosf(tetha);
-				int y2 = 10 * sinf(tetha);
-				Vec4i linea = Vec4i(x1, y1, x2, y2);
-				int voto = votar_rectas(linea);
-				if (voto > -1) {
-					votos3[voto] = votos3[voto] + 1;
+				if (tetha - (int)(tetha / (CV_PI / 2))*(CV_PI / 2) > 0.07){
+					int x1 = j;
+					int y1 = i;
+					int x2 = 10 * cosf(tetha);
+					int y2 = 10 * sinf(tetha);
+					Vec4i linea = Vec4i(x1, y1, x2, y2);
+					int voto = votar_rectas(linea);
+					if (voto > -1) {
+						votos3[voto] = votos3[voto] + 1;
+					}
 				}
 			}
 		}
 	}
-	
+
 	maxvotes = 0;
 	indice = 0;
 	for (int i = 0; i < votos3.size(); i++) {
@@ -307,6 +336,7 @@ int main(int argc, char * argv[]) {
 	circle(cdst3, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon (contour version of canny)", cdst3);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
+	*/
 	//Finish program
 	std::cout << "Pulsa una tecla para terminar ";
 	cv::waitKey(0);
