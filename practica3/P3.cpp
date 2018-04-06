@@ -50,9 +50,9 @@ int votar_rectas(Vec4i linea) {
 	int x2 = linea[2];
 	int y2 = linea[3];
 	int x3 = 0;
-	int y3 = 225;
+	int y3 = 195;
 	int x4 = 500;
-	int y4 = 225;
+	int y4 = 195;
 	if (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)) != 0) {
 		int pos = (((x1*y2 - y1 * x2)*(x3 - x4)) - ((x1 - x2)*(x3*y4 - y3 * x4))) / (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)));
 		if (pos >= 0 && pos<500) {
@@ -206,13 +206,13 @@ int main(int argc, char * argv[]) {
 	imshow("source", sinruido2);
 	imshow("detected lines", cdst);
 
-	float umbral = 50;
+	float umbral = 70;
 	vector<int> votos2(500);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
 		for (int j = 0; j < cdst.cols; j++) {
 			if (grad.at<uchar>(i, j)> umbral) {
-				float tetha = angulo.data[j + (i*angulo.cols)]*128/PI;
+				float tetha = angulo.data[j + (i*angulo.cols)]*PI/128;
 				//utilizamos dist para medir la distancia a los ejes X e Y y comprobar si una recta es vertical u horizontal
 				float dist = cosf(tetha);
 
@@ -249,7 +249,7 @@ int main(int argc, char * argv[]) {
 		double voto = votos.at(i);
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
-			circle(cdst, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
+			circle(cdst, Point(i, 195), voto, Scalar(255, 0, 0), -1, 8);
 		}
 
 		if (voto > maxvotes) {
@@ -258,7 +258,7 @@ int main(int argc, char * argv[]) {
 			indice = i;
 		}
 	}
-	circle(cdst, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
+	circle(cdst, Point(indice, 195), maxvotes, Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon", cdst);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
@@ -270,7 +270,7 @@ int main(int argc, char * argv[]) {
 		cout << i << ":" << voto << "\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
-			circle(cdst2, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
+			circle(cdst2, Point(i, 195), voto, Scalar(255, 0, 0), -1, 8);
 		}
 
 		if (voto > maxvotes) {
@@ -279,7 +279,7 @@ int main(int argc, char * argv[]) {
 			indice = i;
 		}
 	}
-	circle(cdst2, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
+	circle(cdst2, Point(indice, 195), maxvotes, Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon (contour version)", cdst2);
 	pintarX(indice,src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
