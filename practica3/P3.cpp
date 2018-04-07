@@ -77,27 +77,22 @@ void pintarX(int x, Mat mat) {
 	imshow("Punto de fuga", mat);
 }
 
-void gradients(cv::Mat &src_gray, cv::Mat &grad_x, cv::Mat &grad_y, cv::Mat &grad)
+void gradients(cv::Mat &src_gray, cv::Mat &grad_x, cv::Mat &grad_y)
 {
 	int scale = 1;
 	int delta = 0;
 	int ddepth = CV_32F;
-	// Gradient X
 	Mat abs_grad_x;
-	Mat abs_grad_x2;
+	// Gradient X
 	Sobel(src_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT);
 	convertScaleAbs(grad_x, abs_grad_x, 0.5, 128);
-	convertScaleAbs(grad_x, abs_grad_x2);
 	imshow("Gx", abs_grad_x);
 	// Gradient Y
 	Mat abs_grad_y;
-	Mat abs_grad_y2;
 	Sobel(src_gray, grad_y, ddepth, 0, 1, 3, -scale, delta, BORDER_DEFAULT);
 	convertScaleAbs(grad_y, abs_grad_y, 0.5, 128);
-	convertScaleAbs(grad_y, abs_grad_y2);
 	imshow("Gy", abs_grad_y);
 	// Total Gradient (approximate)
-	addWeighted(abs_grad_x2, 0.5, abs_grad_y2, 0.5, 0, grad);
 }
 
 void reduceNoisy(cv::Mat &grad, cv::Mat &sinruido)
@@ -165,29 +160,20 @@ int main(int argc, char * argv[]) {
 	Mat grad_x;
 	Mat grad_y;
 	Mat grad;
-	gradients(src_gray, grad_x, grad_y, grad);
+	gradients(src_gray, grad_x, grad_y);
 	Mat angulo = grad.clone();
 	cartToPolar(grad_x, grad_y, grad, angulo,false);
-	//imshow("Magnitud del Gradiente", grad/255);
+	imshow("Magnitud del Gradiente", grad/255);
 
-	// Angle
-	
-	/*for (int i = 0; i < angulo.rows * angulo.cols; i++) {
-		double y = grad_y.data[i];
-		double x = grad_x.data[i];
-		double directionRAD = atan2(y, x);
-		angulo.data[i] = directionRAD * 128 / PI;
-	}*/
-	
 	imshow("Angulo", (angulo * 128 / PI)/255);
 	waitKey(0);
 	// Reduce noisy from sobel
 	Mat sinruido;
-	reduceNoisy(grad, sinruido);
-	imshow("Contorno", sinruido);
+	//reduceNoisy(grad, sinruido);
+	//imshow("Contorno", sinruido);
 
 	// Detect lines 
-	Mat cdst = grad;
+	Mat cdst = src.clone();
 	//cvtColor(sinruido, cdst, CV_GRAY2BGR);
 
 	float umbral = 100;
@@ -195,14 +181,14 @@ int main(int argc, char * argv[]) {
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
 		for (int j = 0; j < cdst.cols; j++) {
-			if (grad.at<uchar>(i, j)> umbral) {
-				float tetha = angulo.data[j + (i*angulo.cols)] * PI / 128;
+			if (grad.at<float>(i, j)> umbral) {
+				float tetha = angulo.at<float>(i,j);
 				//utilizamos dist para medir la distancia a los ejes X e Y y comprobar si una recta es vertical u horizontal
 				float dist = cosf(tetha);
 				if (dist < 0) {
 					dist = -dist;
 				}
-				if (dist>0.1 && dist<0.9) {
+				if (dist>0.2 && dist<0.8) {
 					int x1 = j;
 					int y1 = i;
 					int x2 = x1 - 10 * sinf(tetha);
@@ -214,9 +200,8 @@ int main(int argc, char * argv[]) {
 						fullLine(&cdst, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
 						circle(cdst, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
 						circle(cdst, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
-						/*cout << dist << endl;
 						imshow("detected lines with points on horizon (contour version)", cdst);
-						waitKey(0);*/
+						waitKey(0);
 					}
 				}
 			}
