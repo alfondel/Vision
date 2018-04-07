@@ -81,7 +81,7 @@ void gradients(cv::Mat &src_gray, cv::Mat &grad_x, cv::Mat &grad_y, cv::Mat &gra
 {
 	int scale = 1;
 	int delta = 0;
-	int ddepth = CV_16S;
+	int ddepth = CV_32F;
 	// Gradient X
 	Mat abs_grad_x;
 	Mat abs_grad_x2;
@@ -118,16 +118,15 @@ void reduceNoisy(cv::Mat &grad, cv::Mat &sinruido)
 }
 void fullLine(cv::Mat *img, cv::Point a, cv::Point b, cv::Scalar color) {
 	double deno = (b.x - a.x);
-	if (deno == 0) {
-		deno = 0.00001;
+	if (deno != 0) {
+		double slope = (b.y - a.y) / deno;
+		Point p(0, 0), q(img->cols, img->rows);
+
+		p.y = -(a.x - p.x) * slope + a.y;
+		q.y = -(b.x - q.x) * slope + b.y;
+
+		line(*img, p, q, color, 1, 8, 0);
 	}
-	double slope = (b.y - a.y) / deno;
-	Point p(0, 0), q(img->cols, img->rows);
-
-	p.y = -(a.x - p.x) * slope + a.y;
-	q.y = -(b.x - q.x) * slope + b.y;
-
-	line(*img, p, q, color, 1, 8, 0);	
 
 }
 int main(int argc, char * argv[]) {
@@ -167,26 +166,31 @@ int main(int argc, char * argv[]) {
 	Mat grad_y;
 	Mat grad;
 	gradients(src_gray, grad_x, grad_y, grad);
-	imshow("Magnitud del Gradiente", grad);
+	Mat angulo = grad.clone();
+	cartToPolar(grad_x, grad_y, grad, angulo,false);
+	//imshow("Magnitud del Gradiente", grad/255);
 
 	// Angle
-	Mat angulo = grad_x.clone();
-	for (int i = 0; i < 2 * angulo.rows * angulo.cols; i++) {
-		double directionRAD = atan2(grad_y.data[i], grad_x.data[i]);
+	
+	/*for (int i = 0; i < angulo.rows * angulo.cols; i++) {
+		double y = grad_y.data[i];
+		double x = grad_x.data[i];
+		double directionRAD = atan2(y, x);
 		angulo.data[i] = directionRAD * 128 / PI;
-	}
-	imshow("Angulo", angulo);
-
+	}*/
+	
+	imshow("Angulo", (angulo * 128 / PI)/255);
+	waitKey(0);
 	// Reduce noisy from sobel
 	Mat sinruido;
 	reduceNoisy(grad, sinruido);
 	imshow("Contorno", sinruido);
 
 	// Detect lines 
-	Mat cdst;
-	cvtColor(sinruido, cdst, CV_GRAY2BGR);
+	Mat cdst = grad;
+	//cvtColor(sinruido, cdst, CV_GRAY2BGR);
 
-	float umbral = 130;
+	float umbral = 100;
 	vector<int> votos2(50);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
@@ -201,17 +205,18 @@ int main(int argc, char * argv[]) {
 				if (dist>0.1 && dist<0.9) {
 					int x1 = j;
 					int y1 = i;
-					int x2 = x1 + 10 * cosf(tetha);
-					int y2 = y1 + 10 * sinf(tetha);
+					int x2 = x1 - 10 * sinf(tetha);
+					int y2 = y1 - 10 * cosf(tetha);
 					Vec4i linea = Vec4i(x1, y1, x2, y2);
 					int voto = votar_rectas(linea);
 					if (voto > -1) {
 						votos2[voto] = votos2[voto] + 1;
 						fullLine(&cdst, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
 						circle(cdst, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
-						cout << dist << endl;
+						circle(cdst, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
+						/*cout << dist << endl;
 						imshow("detected lines with points on horizon (contour version)", cdst);
-						waitKey(0);
+						waitKey(0);*/
 					}
 				}
 			}
@@ -232,7 +237,6 @@ int main(int argc, char * argv[]) {
 		}
 
 		if (voto > maxvotes) {
-			//cout << "votos " << votos.at(i) << endl;
 			maxvotes = voto;
 			indice = i * 10;
 		}
