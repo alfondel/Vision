@@ -118,15 +118,16 @@ void reduceNoisy(cv::Mat &grad, cv::Mat &sinruido)
 }
 void fullLine(cv::Mat *img, cv::Point a, cv::Point b, cv::Scalar color) {
 	double deno = (b.x - a.x);
-	if (deno != 0) {
-		double slope = (b.y - a.y) / deno;
-		Point p(0, 0), q(img->cols, img->rows);
-
-		p.y = -(a.x - p.x) * slope + a.y;
-		q.y = -(b.x - q.x) * slope + b.y;
-
-		line(*img, p, q, color, 1, 8, 0);
+	if (deno == 0) {
+		deno = 0.00001;
 	}
+	double slope = (b.y - a.y) / deno;
+	Point p(0, 0), q(img->cols, img->rows);
+
+	p.y = -(a.x - p.x) * slope + a.y;
+	q.y = -(b.x - q.x) * slope + b.y;
+
+	line(*img, p, q, color, 1, 8, 0);	
 
 }
 int main(int argc, char * argv[]) {
