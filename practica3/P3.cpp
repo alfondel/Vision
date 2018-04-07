@@ -51,9 +51,9 @@ int votar_rectas(Vec4i linea) {
 	int x2 = linea[2];
 	int y2 = linea[3];
 	int x3 = 0;
-	int y3 = 225;
+	int y3 = 256;
 	int x4 = 500;
-	int y4 = 225;
+	int y4 = 256;
 	if (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)) != 0) {
 		int pos = (((x1*y2 - y1 * x2)*(x3 - x4)) - ((x1 - x2)*(x3*y4 - y3 * x4))) / (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)));
 		if (pos >= 0 && pos<500) {
@@ -64,7 +64,7 @@ int votar_rectas(Vec4i linea) {
 }
 
 void pintarX(int x, Mat mat) {
-	int y = mat.cols / 2;
+	int y = mat.rows/2;
 	Point p1 = Point(x, y - 10);
 	Point p2 = Point(x, y + 10);
 	Point p3 = Point(x - 10, y);
@@ -96,7 +96,7 @@ void gradients(cv::Mat &src_gray, cv::Mat &grad_x, cv::Mat &grad_y)
 }
 
 void showPoints(Mat imagen, Mat modulo,Mat angulo) {
-
+	int umbral = 80;
 	for (int i = 0; i < modulo.rows; i++) {		// Se recorren las filas.
 		for (int j = 0; j < modulo.cols; j++) {		// Se recorren las columnas.
 			float tetha = angulo.at<float>(i, j);
@@ -105,7 +105,7 @@ void showPoints(Mat imagen, Mat modulo,Mat angulo) {
 				dist = -dist;
 			}
 
-			if (modulo.at<float>(i, j) > 50 && dist>0.1 && dist<0.9) {			// Se aplica el filtro por umbral.
+			if (modulo.at<float>(i, j) > umbral && dist>0.15 && dist<0.85) {			// Se aplica el filtro por umbral.
 															// Se señala el punto en la imagen.
 				circle(imagen, Point(j, i), 1, CV_RGB(255, 0, 0));
 			}
@@ -185,7 +185,7 @@ int main(int argc, char * argv[]) {
 	cartToPolar(grad_x, grad_y, grad, angulo,false);
 	imshow("Magnitud del Gradiente", grad/255);
 	imshow("Angulo", (angulo * 128 / PI)/255);
-	waitKey(0);
+	//waitKey(0);
 	showPoints(src.clone(),grad,angulo);
 
 	// Reduce noisy from sobel
@@ -197,7 +197,7 @@ int main(int argc, char * argv[]) {
 	Mat cdst = src.clone();
 	//cvtColor(sinruido, cdst, CV_GRAY2BGR);
 
-	float umbral = 50;
+	float umbral = 80;
 	vector<int> votos2(50);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
@@ -209,7 +209,7 @@ int main(int argc, char * argv[]) {
 				if (dist < 0) {
 					dist = -dist;
 				}
-				if (dist>0.1 && dist<0.9) {
+				if (dist>0.15 && dist<0.85) {
 					int x1 = j;
 					int y1 = i;
 					int x2 = x1 - 10 * sinf(tetha);
@@ -224,7 +224,7 @@ int main(int argc, char * argv[]) {
 						fullLine(&visualizacion, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
 						circle(visualizacion, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
 						circle(visualizacion, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
-						imshow("detected lines with points on horizon (contour version)", visualizacion);
+						//imshow("detected lines with points on horizon (contour version)", visualizacion);
 						//waitKey(0);
 					}
 				}
@@ -242,7 +242,7 @@ int main(int argc, char * argv[]) {
 		cout << i << ":" << voto << "\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
-			circle(cdst, Point(i * 10, 225), log(voto*voto), Scalar(255, 0, 0), -1, 8);
+			circle(cdst, Point(i * 10, 256), log(voto*voto), Scalar(255, 0, 0), -1, 8);
 		}
 
 		if (voto > maxvotes) {
@@ -250,7 +250,7 @@ int main(int argc, char * argv[]) {
 			indice = i * 10;
 		}
 	}
-	circle(cdst, Point(indice, 225), log(maxvotes*maxvotes), Scalar(0, 255, 0), -1, 8);
+	circle(cdst, Point(indice, 256), log(maxvotes*maxvotes), Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon (contour version)", cdst);
 	pintarX(indice, src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
