@@ -39,7 +39,7 @@ int votar_recta(float tetha, float ro, int cols) {
 
 	int corte = ro / cosf(tetha);		// Se calcula el corte con el eje X. 
 	if (corte < cols / 2 && corte >= -cols / 2) {	// Se comprueba que corta en la imagen.
-		corte = corte + (cols/2);		// Se pone el corte en el rango.
+		corte = corte + (cols / 2);		// Se pone el corte en el rango.
 		return corte;
 	}
 	return -1;
@@ -57,7 +57,7 @@ int votar_rectas(Vec4i linea) {
 	if (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)) != 0) {
 		int pos = (((x1*y2 - y1 * x2)*(x3 - x4)) - ((x1 - x2)*(x3*y4 - y3 * x4))) / (((x1 - x2)*(y3 - y4)) - ((y1 - y2)*(x3 - x4)));
 		if (pos >= 0 && pos<500) {
-			return pos/10;
+			return pos / 10;
 		}
 	}
 	return -1;
@@ -77,7 +77,7 @@ void pintarX(int x, Mat mat) {
 	imshow("Punto de fuga", mat);
 }
 
-void gradients(cv::Mat &src_gray, cv::Mat &grad_x,cv::Mat &grad_y, cv::Mat &grad)
+void gradients(cv::Mat &src_gray, cv::Mat &grad_x, cv::Mat &grad_y, cv::Mat &grad)
 {
 	int scale = 1;
 	int delta = 0;
@@ -127,7 +127,7 @@ void fullLine(cv::Mat *img, cv::Point a, cv::Point b, cv::Scalar color) {
 
 		line(*img, p, q, color, 1, 8, 0);
 	}
-	
+
 }
 int main(int argc, char * argv[]) {
 
@@ -144,14 +144,14 @@ int main(int argc, char * argv[]) {
 			file = argv[i + 1];
 		}
 	}
-	
+
 	// Load an image in src
 	Mat src;
 	src = imread(file);
-	if (!src.data){
+	if (!src.data) {
 		return -1;
 	}
-	
+
 	// Apply gaussian blur to image in src_gau
 	Mat src_gau;
 	int sigma = 3;
@@ -169,8 +169,8 @@ int main(int argc, char * argv[]) {
 	imshow("Magnitud del Gradiente", grad);
 
 	// Angle
-	Mat angulo = grad_x.clone(); 
-	for (int i = 0; i < 2 * angulo.rows * angulo.cols; i++)	{
+	Mat angulo = grad_x.clone();
+	for (int i = 0; i < 2 * angulo.rows * angulo.cols; i++) {
 		double directionRAD = atan2(grad_y.data[i], grad_x.data[i]);
 		angulo.data[i] = directionRAD * 128 / PI;
 	}
@@ -180,35 +180,37 @@ int main(int argc, char * argv[]) {
 	Mat sinruido;
 	reduceNoisy(grad, sinruido);
 	imshow("Contorno", sinruido);
-	
+
 	// Detect lines 
 	Mat cdst;
 	cvtColor(sinruido, cdst, CV_GRAY2BGR);
 
-	float umbral = 70;
+	float umbral = 130;
 	vector<int> votos2(50);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
 		for (int j = 0; j < cdst.cols; j++) {
 			if (grad.at<uchar>(i, j)> umbral) {
-				float tetha = angulo.data[j + (i*angulo.cols)]*PI/128;
+				float tetha = angulo.data[j + (i*angulo.cols)] * PI / 128;
 				//utilizamos dist para medir la distancia a los ejes X e Y y comprobar si una recta es vertical u horizontal
 				float dist = cosf(tetha);
-
 				if (dist < 0) {
 					dist = -dist;
 				}
-				if(dist>0.1 && dist<0.9){
+				if (dist>0.1 && dist<0.9) {
 					int x1 = j;
 					int y1 = i;
-					int x2 = 10 * cosf(tetha);
-					int y2 = 10 * sinf(tetha);
+					int x2 = x1 + 10 * cosf(tetha);
+					int y2 = y1 + 10 * sinf(tetha);
 					Vec4i linea = Vec4i(x1, y1, x2, y2);
 					int voto = votar_rectas(linea);
 					if (voto > -1) {
 						votos2[voto] = votos2[voto] + 1;
 						fullLine(&cdst, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
-						
+						circle(cdst, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
+						cout << dist << endl;
+						imshow("detected lines with points on horizon (contour version)", cdst);
+						waitKey(0);
 					}
 				}
 			}
@@ -225,18 +227,18 @@ int main(int argc, char * argv[]) {
 		cout << i << ":" << voto << "\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
-			circle(cdst, Point(i*10, 225), log(voto*voto), Scalar(255, 0, 0), -1, 8);
+			circle(cdst, Point(i * 10, 225), log(voto*voto), Scalar(255, 0, 0), -1, 8);
 		}
 
 		if (voto > maxvotes) {
 			//cout << "votos " << votos.at(i) << endl;
 			maxvotes = voto;
-			indice = i*10;
+			indice = i * 10;
 		}
 	}
 	circle(cdst, Point(indice, 225), log(maxvotes*maxvotes), Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon (contour version)", cdst);
-	pintarX(indice,src);
+	pintarX(indice, src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
 	//Finish program
@@ -245,5 +247,4 @@ int main(int argc, char * argv[]) {
 
 	return 0;
 }
-
 
