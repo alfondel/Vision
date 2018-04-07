@@ -17,6 +17,7 @@ Daniel Martinez Martinez - 538798
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+
 using namespace cv;
 using namespace std;
 
@@ -76,8 +77,61 @@ void pintarX(int x, Mat mat) {
 	imshow("Punto de fuga", mat);
 }
 
+void gradients(cv::Mat &src_gray, cv::Mat &grad_x,cv::Mat &grad_y, cv::Mat &grad)
+{
+	int scale = 1;
+	int delta = 0;
+	int ddepth = CV_16S;
+	// Gradient X
+	Mat abs_grad_x;
+	Mat abs_grad_x2;
+	Sobel(src_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT);
+	convertScaleAbs(grad_x, abs_grad_x, 0.5, 128);
+	convertScaleAbs(grad_x, abs_grad_x2);
+	imshow("Gx", abs_grad_x);
+	// Gradient Y
+	Mat abs_grad_y;
+	Mat abs_grad_y2;
+	Sobel(src_gray, grad_y, ddepth, 0, 1, 3, -scale, delta, BORDER_DEFAULT);
+	convertScaleAbs(grad_y, abs_grad_y, 0.5, 128);
+	convertScaleAbs(grad_y, abs_grad_y2);
+	imshow("Gy", abs_grad_y);
+	// Total Gradient (approximate)
+	addWeighted(abs_grad_x2, 0.5, abs_grad_y2, 0.5, 0, grad);
+}
+
+void reduceNoisy(cv::Mat &grad, cv::Mat &sinruido)
+{
+	cv::Scalar mean = cv::mean(grad);
+	Mat aux = grad.clone();
+	for (int i = 0; i < aux.rows * aux.cols; i++) {
+		double data = aux.data[i];
+		if (data < mean[0]) {
+			aux.data[i] = 0;
+		}
+	}
+	imshow("Grad sin ruido", aux);
+
+	equalizeHist(aux, sinruido);
+	mean = cv::mean(sinruido);
+	threshold(sinruido, sinruido, mean[0], 255, 0);
+}
+void fullLine(cv::Mat *img, cv::Point a, cv::Point b, cv::Scalar color) {
+	double deno = (b.x - a.x);
+	if (deno != 0) {
+		double slope = (b.y - a.y) / deno;
+		Point p(0, 0), q(img->cols, img->rows);
+
+		p.y = -(a.x - p.x) * slope + a.y;
+		q.y = -(b.x - q.x) * slope + b.y;
+
+		line(*img, p, q, color, 1, 8, 0);
+	}
+	
+}
 int main(int argc, char * argv[]) {
 
+	// Read image from parameters
 	string file = "";
 	string program = argv[0];
 	string err = "USE: " + program + " -f <filename>\n";
@@ -89,122 +143,47 @@ int main(int argc, char * argv[]) {
 		if (strcmp(argv[i], "-f") == 0) {
 			file = argv[i + 1];
 		}
-
 	}
-
-
-	//Inicio del programa
-	Mat image = imread(file, CV_LOAD_IMAGE_COLOR);
-
-	imshow("Imagen", image);
-
-	filtroGauss(image, 1);
-
-	//Para sobel https://docs.opencv.org/2.4/doc/tutorials/imgproc/imgtrans/sobel_derivatives/sobel_derivatives.html
-	Mat src, src_gray, src_gau;
-	Mat grad;
-	string window_name = "Sobel Demo - Simple Edge Detector";
-	int scale = 1;
-	int delta = 0;
-	int ddepth = CV_16S;
-
-	int c;
-
-	/// Load an image
+	
+	// Load an image in src
+	Mat src;
 	src = imread(file);
-
-	if (!src.data)
-	{
+	if (!src.data){
 		return -1;
 	}
+	
+	// Apply gaussian blur to image in src_gau
+	Mat src_gau;
 	int sigma = 3;
-
 	GaussianBlur(src, src_gau, Size(sigma, sigma), 0, 0, BORDER_DEFAULT);
 
-	/// Convert it to gray
+	// Convert it to gray src_gray
+	Mat src_gray;
 	cvtColor(src_gau, src_gray, CV_BGR2GRAY);
 
-	/// Generate grad_x and grad_y
-	Mat grad_x, grad_y;
-	Mat abs_grad_x, abs_grad_y;
-	Mat abs_grad_x2, abs_grad_y2;
-	/// Gradient X
-	//Scharr( src_gray, grad_x, ddepth, 1, 0, scale, delta, BORDER_DEFAULT );
-	Sobel(src_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT);
-
-	convertScaleAbs(grad_x, abs_grad_x, 0.5, 128);
-	convertScaleAbs(grad_x, abs_grad_x2);
-	imshow("Gx", abs_grad_x);
-
-	/// Gradient Y
-	//Scharr( src_gray, grad_y, ddepth, 0, 1, scale, delta, BORDER_DEFAULT );
-	Sobel(src_gray, grad_y, ddepth, 0, 1, 3, -scale, delta, BORDER_DEFAULT);
-	convertScaleAbs(grad_y, abs_grad_y, 0.5, 128);
-	convertScaleAbs(grad_y, abs_grad_y2);
-	imshow("Gy", abs_grad_y);
-
-	/// Total Gradient (approximate)
-
-	addWeighted(abs_grad_x2, 0.5, abs_grad_y2, 0.5, 0, grad);
+	// Generate grad_x and grad_y
+	Mat grad_x;
+	Mat grad_y;
+	Mat grad;
+	gradients(src_gray, grad_x, grad_y, grad);
 	imshow("Magnitud del Gradiente", grad);
 
 	// Angle
-	Mat angulo = grad_x.clone();
-	for (int i = 0; i < 2 * angulo.rows * angulo.cols; i++)
-	{
+	Mat angulo = grad_x.clone(); 
+	for (int i = 0; i < 2 * angulo.rows * angulo.cols; i++)	{
 		double directionRAD = atan2(grad_y.data[i], grad_x.data[i]);
 		angulo.data[i] = directionRAD * 128 / PI;
 	}
 	imshow("Angulo", angulo);
-	//ELIMINAR RUIDO
-	//Eliminar ruido desde la media
-	cv::Scalar mean = cv::mean(grad);
-	Mat sinruido = grad.clone();
-	for (int i = 0; i < sinruido.rows * sinruido.cols; i++)
-	{
-		double data = sinruido.data[i];
-		if (data < mean[0]) {
-			sinruido.data[i] = 0;
-		}
 
-	}
-	imshow("Grad sin ruido", sinruido);
-	Mat sinruido2;
-	equalizeHist(sinruido, sinruido2);
-
-	// Opcional aplicar otra vez pero tras ecualizar
-	mean = cv::mean(sinruido2);
-
-	for (int i = 0; i < sinruido2.rows * sinruido2.cols; i++)
-	{
-		double data = sinruido2.data[i];
-		if (data < mean[0]) {
-			sinruido2.data[i] = 0;
-		}
-
-	}
-	imshow("Grad sin ruido2", sinruido2);
-	//DETECCION DE LINEAS 
-	//Mat dst, cdst;
-	Mat cdst, cannyout, cannyresult;
-	Canny(src_gray, cannyout, 50, 200, 3);
-	cvtColor(cannyout, cannyresult, CV_GRAY2BGR);
-	cvtColor(sinruido2, cdst, CV_GRAY2BGR);
-
-	vector<Vec4i> lines;
-	//HoughLinesP(sinruido2, lines, 1, CV_PI / 180, 50, 50, 10);
-	HoughLinesP(cannyout, lines, 1, CV_PI / 180, 50, 50, 10);
-	for (size_t i = 0; i < lines.size(); i++)
-	{
-		Vec4i l = lines[i];
-		line(cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
-	}
-
-
-	Mat cdst2 = cdst.clone();
-	Mat cdst3 = cdst.clone();
-	imshow("source", sinruido2);
-	imshow("detected lines", cdst);
+	// Reduce noisy from sobel
+	Mat sinruido;
+	reduceNoisy(grad, sinruido);
+	imshow("Contorno", sinruido);
+	
+	// Detect lines 
+	Mat cdst;
+	cvtColor(sinruido, cdst, CV_GRAY2BGR);
 
 	float umbral = 70;
 	vector<int> votos2(50);
@@ -228,6 +207,8 @@ int main(int argc, char * argv[]) {
 					int voto = votar_rectas(linea);
 					if (voto > -1) {
 						votos2[voto] = votos2[voto] + 1;
+						fullLine(&cdst, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
+						
 					}
 				}
 			}
@@ -235,34 +216,6 @@ int main(int argc, char * argv[]) {
 	}
 	int maxvotes = 0;
 	int indice = 0;
-
-	//VOTACION WITH HoughLinesP
-	/*vector<int> votos(500);
-	for (Vec4i linea : lines) {
-		int voto = votar_rectas(linea);
-		if (voto > -1) {
-			votos[voto] = votos[voto] + 1;
-		}
-	}
-
-	//Contar votos de la primera forma
-
-	for (int i = 0; i < votos.size(); i++) {
-		double voto = votos.at(i);
-		//paint on cst image the points of the horizon
-		if (voto > 0) {
-			circle(cdst, Point(i, 225), voto, Scalar(255, 0, 0), -1, 8);
-		}
-
-		if (voto > maxvotes) {
-			//cout << "votos " << votos.at(i) << endl;
-			maxvotes = voto;
-			indice = i*10;
-		}
-	}
-	circle(cdst, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
-	imshow("detected lines with points on horizon", cdst);
-	cout << "\n" << maxvotes << " votes at indice " << indice << endl;*/
 
 	//Contar votos con el contorno
 	maxvotes = 0;
@@ -272,7 +225,7 @@ int main(int argc, char * argv[]) {
 		cout << i << ":" << voto << "\t";
 		//paint on cst image the points of the horizon
 		if (voto > 0) {
-			circle(cdst2, Point(i*10, 225), voto, Scalar(255, 0, 0), -1, 8);
+			circle(cdst, Point(i*10, 225), log(voto*voto), Scalar(255, 0, 0), -1, 8);
 		}
 
 		if (voto > maxvotes) {
@@ -281,8 +234,8 @@ int main(int argc, char * argv[]) {
 			indice = i*10;
 		}
 	}
-	circle(cdst2, Point(indice, 225), maxvotes, Scalar(0, 255, 0), -1, 8);
-	imshow("detected lines with points on horizon (contour version)", cdst2);
+	circle(cdst, Point(indice, 225), log(maxvotes*maxvotes), Scalar(0, 255, 0), -1, 8);
+	imshow("detected lines with points on horizon (contour version)", cdst);
 	pintarX(indice,src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
@@ -292,3 +245,5 @@ int main(int argc, char * argv[]) {
 
 	return 0;
 }
+
+
