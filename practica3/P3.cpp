@@ -95,6 +95,26 @@ void gradients(cv::Mat &src_gray, cv::Mat &grad_x, cv::Mat &grad_y)
 	// Total Gradient (approximate)
 }
 
+void showPoints(Mat imagen, Mat modulo,Mat angulo) {
+
+	for (int i = 0; i < modulo.rows; i++) {		// Se recorren las filas.
+		for (int j = 0; j < modulo.cols; j++) {		// Se recorren las columnas.
+			float tetha = angulo.at<float>(i, j);
+			float dist = cosf(tetha);
+			if (dist < 0) {
+				dist = -dist;
+			}
+
+			if (modulo.at<float>(i, j) > 50 && dist>0.1 && dist<0.9) {			// Se aplica el filtro por umbral.
+															// Se señala el punto en la imagen.
+				circle(imagen, Point(j, i), 1, CV_RGB(255, 0, 0));
+			}
+
+		}
+	}
+	imshow("puntos ",imagen);
+}
+
 void reduceNoisy(cv::Mat &grad, cv::Mat &sinruido)
 {
 	cv::Scalar mean = cv::mean(grad);
@@ -164,9 +184,10 @@ int main(int argc, char * argv[]) {
 	Mat angulo = grad.clone();
 	cartToPolar(grad_x, grad_y, grad, angulo,false);
 	imshow("Magnitud del Gradiente", grad/255);
-
 	imshow("Angulo", (angulo * 128 / PI)/255);
 	waitKey(0);
+	showPoints(src.clone(),grad,angulo);
+
 	// Reduce noisy from sobel
 	Mat sinruido;
 	//reduceNoisy(grad, sinruido);
@@ -176,7 +197,7 @@ int main(int argc, char * argv[]) {
 	Mat cdst = src.clone();
 	//cvtColor(sinruido, cdst, CV_GRAY2BGR);
 
-	float umbral = 100;
+	float umbral = 50;
 	vector<int> votos2(50);
 	//VOTACION with contour pixels
 	for (int i = 0; i < cdst.rows; i++) {
@@ -188,7 +209,7 @@ int main(int argc, char * argv[]) {
 				if (dist < 0) {
 					dist = -dist;
 				}
-				if (dist>0.2 && dist<0.8) {
+				if (dist>0.1 && dist<0.9) {
 					int x1 = j;
 					int y1 = i;
 					int x2 = x1 - 10 * sinf(tetha);
@@ -196,12 +217,15 @@ int main(int argc, char * argv[]) {
 					Vec4i linea = Vec4i(x1, y1, x2, y2);
 					int voto = votar_rectas(linea);
 					if (voto > -1) {
+						
 						votos2[voto] = votos2[voto] + 1;
-						fullLine(&cdst, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
-						circle(cdst, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
-						circle(cdst, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
-						imshow("detected lines with points on horizon (contour version)", cdst);
-						waitKey(0);
+						//visualizacion
+						Mat visualizacion = cdst.clone();
+						fullLine(&visualizacion, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
+						circle(visualizacion, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
+						circle(visualizacion, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
+						imshow("detected lines with points on horizon (contour version)", visualizacion);
+						//waitKey(0);
 					}
 				}
 			}
