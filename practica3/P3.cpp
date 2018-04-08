@@ -37,10 +37,10 @@ void filtroGauss(Mat src, float t) {
 
 int votar_recta(float tetha, float ro, int cols) {
 
-	int corte = ro / cosf(tetha);		// Se calcula el corte con el eje X. 
-	if (corte < cols / 2 && corte >= -cols / 2) {	// Se comprueba que corta en la imagen.
-		corte = corte + (cols / 2);		// Se pone el corte en el rango.
-		return corte;
+	int voto = ro / cosf(tetha);		// Se calcula el corte con el eje X. 
+	if (voto < cols / 2 && voto >= -cols / 2) {	// Se comprueba que corta en la imagen.
+		voto = voto + (cols / 2);		// Se pone el voto en el rango.
+		return voto;
 	}
 	return -1;
 }
@@ -210,22 +210,31 @@ int main(int argc, char * argv[]) {
 					dist = -dist;
 				}
 				if (dist>0.15 && dist<0.85) {
-					int x1 = j;
-					int y1 = i;
-					int x2 = x1 - 10 * sinf(tetha);
-					int y2 = y1 - 10 * cosf(tetha);
-					Vec4i linea = Vec4i(x1, y1, x2, y2);
-					int voto = votar_rectas(linea);
-					if (voto > -1) {
-						
-						votos2[voto] = votos2[voto] + 1;
+					//int x1 = j;
+					//int y1 = i;
+					//int x2 = x1 - (10 * sinf(tetha));
+					//int y2 = y1 - (10 * cosf(tetha));
+					//Vec4i linea = Vec4i(x1, y1, x2, y2);
+					//int voto = votar_rectas(linea);
+
+					//if (voto > -1) {
+					//	votos2[voto] = votos2[voto] + 1;
 						//visualizacion
-						Mat visualizacion = cdst.clone();
-						fullLine(&visualizacion, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
-						circle(visualizacion, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
-						circle(visualizacion, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
+					//	Mat visualizacion = cdst.clone();
+						//fullLine(&visualizacion, Point(x1, y1), Point(x2, y2), Scalar(255, 0, 255));
+						//circle(visualizacion, Point(x1,y1), 4, Scalar(0, 0, 255), -1, 8);
+						//circle(visualizacion, Point(x2, y2), 4, Scalar(0, 255, 0), -1, 8);
 						//imshow("detected lines with points on horizon (contour version)", visualizacion);
 						//waitKey(0);
+					//}
+
+					int x = j - grad.cols / 2;
+					int y = grad.rows / 2 - i;
+					float rho = x * cosf(tetha) + y * sinf(tetha);
+					int voto = rho / cosf(tetha);
+					if (voto < grad.cols / 2 && voto >= -grad.cols / 2) {	// Se comprueba que corta en la imagen.
+						voto = voto + grad.cols / 2;
+						votos2[voto / 10] = votos2[voto / 10] + 1;
 					}
 				}
 			}
