@@ -54,7 +54,7 @@ int votar_rectas(Vec4i linea) {
 	return -1;
 }
 
-void pintarX(int x, Mat mat) {
+void drawX(int x, Mat mat) {
 	int y = mat.rows/2;
 	Point p1 = Point(x, y - 10);
 	Point p2 = Point(x, y + 10);
@@ -95,7 +95,6 @@ void showPoints(Mat imagen, Mat modulo,Mat angulo) {
 			if (dist < 0) {
 				dist = -dist;
 			}
-
 			if (modulo.at<float>(i, j) > umbral && dist>0.15 && dist<0.85) {			// Se aplica el filtro por umbral.
 															// Se señala el punto en la imagen.
 				circle(imagen, Point(j, i), 1, CV_RGB(255, 0, 0));
@@ -122,6 +121,7 @@ void reduceNoisy(cv::Mat &grad, cv::Mat &sinruido)
 	mean = cv::mean(sinruido);
 	threshold(sinruido, sinruido, mean[0], 255, 0);
 }
+
 void fullLine(cv::Mat *img, cv::Point a, cv::Point b, cv::Scalar color) {
 	double deno = (b.x - a.x);
 	if (deno != 0) {
@@ -181,12 +181,10 @@ int main(int argc, char * argv[]) {
 
 	// Reduce noisy from sobel
 	Mat sinruido;
-	//reduceNoisy(grad, sinruido);
-	//imshow("Contorno", sinruido);
 
 	// Detect lines 
 	Mat cdst = src.clone();
-	//cvtColor(sinruido, cdst, CV_GRAY2BGR);
+
 
 	float umbral = 80;
 	vector<int> votos2(50);
@@ -204,10 +202,10 @@ int main(int argc, char * argv[]) {
 					int x = j - grad.cols / 2;
 					int y = grad.rows / 2 - i;
 					float rho = x * cosf(tetha) + y * sinf(tetha);
-					int voto = rho / cosf(tetha);
-					if (voto < grad.cols / 2 && voto >= -grad.cols / 2) {	// Se comprueba que corta en la imagen.
-						voto = voto + grad.cols / 2;
-						votos2[voto / 10] = votos2[voto / 10] + 1;
+					int voto = rho / cosf(tetha); //comprobamos interseccion con eje X
+					voto = (voto + grad.cols / 2)/10;
+					if (voto < votos2.size() && voto >=0) {
+						votos2[voto] = votos2[voto] + 1;
 					}
 				}
 			}
@@ -234,7 +232,7 @@ int main(int argc, char * argv[]) {
 	}
 	circle(cdst, Point(indice, 256), log(maxvotes*maxvotes), Scalar(0, 255, 0), -1, 8);
 	imshow("detected lines with points on horizon (contour version)", cdst);
-	pintarX(indice, src);
+	drawX(indice, src);
 	cout << "\n" << maxvotes << " votes at indice " << indice << endl;
 
 	//Finish program
