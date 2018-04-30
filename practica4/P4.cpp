@@ -65,9 +65,18 @@ int main(int argc, char * argv[]) {
         int idx1 = matches[i][0].trainIdx;
         int idx2 = matches[i][1].queryIdx;
         //TO DO: get x and y from matches..
-        pts_src.push_back(Point2f(i * 2, i * 2));
-        pts_dst.push_back(Point2f(i * 2, i * 2));
+        Point2f point1 = keypoints1[matches[i][0].queryIdx].pt;
+        Point2f point2 = keypoints2[matches[i][0].trainIdx].pt;
+       
+           
+        pts_src.push_back(point1);
+        pts_dst.push_back(point2);
+       
+       
 	}
+   
+
+ 
 
 	Mat img_matches1, img_matches2;
 	drawMatches(img1, keypoints1, img2, keypoints2, match1, img_matches1);
@@ -78,9 +87,6 @@ int main(int argc, char * argv[]) {
 
 	//Homografia
  
-    
-
-    
     // pts_src and pts_dst are vectors of points in source 
     // and destination images. They are of type vector<Point2f>. 
     // We need at least 4 corresponding points. 
@@ -91,9 +97,10 @@ int main(int argc, char * argv[]) {
     // the source image to destination. im_src and im_dst are
     // of type Mat. Size is the size (width,height) of im_dst. 
     Mat dst;
-    warpPerspective(img1, dst, h, Size(700,700));
+    warpPerspective(img1, dst, h, Size(400,400));
     imshow("img1 transform", dst);
-
+    warpPerspective(img2, dst, h, Size(400, 400));
+    imshow("img2 transform", dst);
     cv::SURF aa;
   
 
