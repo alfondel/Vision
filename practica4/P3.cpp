@@ -33,7 +33,16 @@ int main(int argc, char * argv[]) {
 	imshow("imagen 1", img1);
 	imshow("imagen 2", img2);
 	waitKey(0);
+
+	//Ampliar imagen para añadir luego las demas 
+	int offsetx = 100;
+	int offsety = 250;
+	Mat trans_mat = (Mat_<double>(2, 3) << 1, 0, offsetx, 0, 1, offsety);
+	warpAffine(img1, img1, trans_mat, Size(img2.cols * 3,img2.rows * 3));
+	imshow("Imagen BASE", img1);
+	waitKey(0);
 	// detecting keypoints
+
 	SurfFeatureDetector detector(400);
 	vector<KeyPoint> keypoints1, keypoints2;
 	detector.detect(img1, keypoints1);
@@ -54,31 +63,8 @@ int main(int argc, char * argv[]) {
 	vector<vector<DMatch>> matches;
 	int k = 2;
 	matcher.knnMatch(descriptors1, descriptors2, matches, k);
-	// drawing the results
-	vector<DMatch> match1;
-	vector<DMatch> match2;
-	vector<Point2f> pts_src;
-	vector<Point2f> pts_dst;
-	for (int i = 0; i<matches.size(); i++)
-	{
-		match1.push_back(matches[i][0]);
-		match2.push_back(matches[i][1]);
-		cout << "Distancias punto " << i << " Distancia 1 " << matches[i][0].distance << " Distancia 2 " << matches[i][1].distance << endl;
-
-		int idx1 = matches[i][0].trainIdx;
-		int idx2 = matches[i][1].queryIdx;
-		//TO DO: get x and y from matches..
-		Point2f point1 = keypoints1[matches[i][0].queryIdx].pt;
-		Point2f point2 = keypoints2[matches[i][0].trainIdx].pt;
-
-
-		pts_src.push_back(point1);
-		pts_dst.push_back(point2);
-
-	}
-
-	//Homografia
-	float minDist=0.25;
+	
+	float minDist = 0.25;
 	vector<cv::DMatch> matchesCorrec;
 	for (int i = 0; i < matches.size(); ++i) {
 		// umbral para cargarte los puntos malos
@@ -86,6 +72,8 @@ int main(int argc, char * argv[]) {
 			matchesCorrec.push_back(matches[i][0]);
 		}
 	}
+	//Homografia
+
 	Mat img_matches1, img_matches2;
 	drawMatches(img1, keypoints1, img2, keypoints2, matchesCorrec, img_matches1);
 	//drawMatches(img1, keypoints1, img2, keypoints2, match2, img_matches2);
@@ -105,43 +93,30 @@ int main(int argc, char * argv[]) {
 	// and destination images. They are of type vector<Point2f>. 
 	// We need at least 4 corresponding points. 
 
-	Mat h = findHomography(pts_src, pts_dst, CV_RANSAC);
+	Mat h = findHomography(puntosPanorama, puntosImagen, CV_RANSAC);
+
+
 
 	// The calculated homography can be used to warp 
 	// the source image to destination. im_src and im_dst are
 	// of type Mat. Size is the size (width,height) of im_dst.
-
-	//-- Get the corners from the image_1 ( the object to be "detected" )
-	std::vector<Point2f> obj_corners(4);
-	obj_corners[0] = cvPoint(0, 0); obj_corners[1] = cvPoint(img1.cols, 0);
-	obj_corners[2] = cvPoint(img1.cols, img1.rows); obj_corners[3] = cvPoint(0, img1.rows);
-	std::vector<Point2f> scene_corners(4);
-	perspectiveTransform(obj_corners, scene_corners, h);
-	//-- Draw lines between the corners (the mapped object in the scene - image_2 )
-	line(img_matches1, scene_corners[0] + Point2f(img1.cols, 0),
-		scene_corners[1] + Point2f(img1.cols, 0),
-		Scalar(0, 255, 0), 4);
-	line(img_matches1, scene_corners[1] + Point2f(img1.cols, 0),
-		scene_corners[2] + Point2f(img1.cols, 0),
-		Scalar(0, 255, 0), 4);
-	line(img_matches1, scene_corners[2] + Point2f(img1.cols, 0),
-		scene_corners[3] + Point2f(img1.cols, 0),
-		Scalar(0, 255, 0), 4);
-	line(img_matches1, scene_corners[3] + Point2f(img1.cols, 0),
-		scene_corners[0] + Point2f(img1.cols, 0),
-		Scalar(0, 255, 0), 4);
-	//-- Show detected matches
-	imshow("Good Matches & Object detection", img_matches1);
-	waitKey(0);
-
-
 	Mat dst;
-	warpPerspective(img1, dst, h, Size(400, 400));
-	imshow("img1 transform", dst);
-	warpPerspective(img2, dst, h, Size(400, 400));
-	imshow("img2 transform", dst);
-	cv::SURF aa;
+	//warpPerspective(img1, dst, h, Size(img1.cols, img1.rows));
+	//imshow("img1 transform", dst);
+	warpPerspective(img2, dst, h, img1.size());
 
+	imshow("img2 transform", dst);
+
+	for (int i = 0; i < img1.cols; i++){
+		for (int j = 0; j < img1.rows; j++) {
+			uchar color_im1 = img1.at<uchar>(Point(i, j));
+			uchar color_im2 = dst.at<uchar>(Point(i, j));
+			if (norm(color_im1) == 0) {
+				img1.at<uchar>(Point(i, j)) = color_im2;
+			}
+		}
+	}
+	imshow("Panorama", img1);
 
 	waitKey(0);
 }
