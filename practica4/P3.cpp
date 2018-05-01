@@ -121,10 +121,8 @@ int main(int argc, char * argv[]) {
 
 		for (int i = 0; i < img1.cols; i++) {
 			for (int j = 0; j < img1.rows; j++) {
-				uchar color_im1 = img1.at<uchar>(Point(i, j));
-				uchar color_im2 = dst.at<uchar>(Point(i, j));
-				if (norm(color_im1) == 0) {
-					img1.at<uchar>(Point(i, j)) = color_im2;
+				if (norm(img1.at<uchar>(Point(i, j))) == 0) {
+					img1.at<uchar>(Point(i, j)) = dst.at<uchar>(Point(i, j));
 				}
 			}
 		}
