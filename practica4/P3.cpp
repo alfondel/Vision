@@ -28,17 +28,17 @@ using namespace std;
 
 
 int main(int argc, char * argv[]) {
-	Mat img1 = imread("C:/Users/Alfonso/Downloads/foto2_opt.jpg", CV_LOAD_IMAGE_GRAYSCALE);
-	Mat img2 = imread("C:/Users/Alfonso/Downloads/foto1_opt.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat img1 = imread("C:/Users/Alfonso/Downloads/foto1_opt.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat img2 = imread("C:/Users/Alfonso/Downloads/foto2_opt.jpg", CV_LOAD_IMAGE_GRAYSCALE);
 	imshow("imagen 1", img1);
 	imshow("imagen 2", img2);
 	waitKey(0);
 
 	//Ampliar imagen para añadir luego las demas 
-	int offsetx = 100;
-	int offsety = 250;
+	int offsetx = img2.cols;
+	int offsety = 0;
 	Mat trans_mat = (Mat_<double>(2, 3) << 1, 0, offsetx, 0, 1, offsety);
-	warpAffine(img1, img1, trans_mat, Size(img2.cols * 3,img2.rows * 3));
+	warpAffine(img1, img1, trans_mat, Size(img2.cols * 2,img2.rows));
 	imshow("Imagen BASE", img1);
 	waitKey(0);
 	// detecting keypoints
