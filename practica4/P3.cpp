@@ -60,7 +60,7 @@ int main(int argc, char * argv[]) {
 	// detecting keypoints
 	for (int i = 1; i < imagenes.size();i++) {
 		img2 = imagenes[i];
-		imshow("img 2", img2);
+		imshow("imagen a añadir", img2);
 		waitKey(0);
 		SurfFeatureDetector detector(400);
 		vector<KeyPoint> keypoints1, keypoints2;
