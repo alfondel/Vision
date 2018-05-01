@@ -33,12 +33,20 @@ int main(int argc, char * argv[]) {
 	imshow("imagen 1", img1);
 	imshow("imagen 2", img2);
 	waitKey(0);
-
+	cout << "Pulsa d para sentido derecha o i para sentido izquierda." << endl;
+	char tecla;
+	cin >> tecla;
+	int offsetx;
 	//Ampliar imagen para añadir luego las demas 
-	int offsetx = img2.cols;
+	if (tecla==68 || tecla == 100) {
+		offsetx = 0;
+	}
+	else if(tecla == 105 || tecla == 73) {
+		offsetx = img1.cols;
+	}
 	int offsety = 0;
 	Mat trans_mat = (Mat_<double>(2, 3) << 1, 0, offsetx, 0, 1, offsety);
-	warpAffine(img1, img1, trans_mat, Size(img2.cols * 2,img2.rows));
+	warpAffine(img1, img1, trans_mat, Size(img1.cols +img2.cols,img2.rows));
 	imshow("Imagen BASE", img1);
 	waitKey(0);
 	// detecting keypoints
