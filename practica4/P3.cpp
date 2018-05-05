@@ -1,4 +1,4 @@
-﻿
+
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <cv.h>
@@ -25,9 +25,9 @@ using namespace std;
 
 #define PI 3.14159265
 
-#define ip "http://10.1.62.18:8080/video?x.mjpeg"
+#define ip "http://192.168.1.135:8080/video?x.mjpeg"
 
-bool camera = false;
+bool camera = true;
 bool calibr = false;
 bool surf = true;
 
@@ -94,10 +94,10 @@ void calibrate() {
             if (successes >= numBoards)
                 break;
         }
-        //resize(image, show1, Size(image.cols*0.4, image.rows *0.4));
-        imshow("win1", image);
-       // resize(gray_image, show2, Size(gray_image.cols*0.4, gray_image.rows *0.4));
-        imshow("win2", gray_image);
+        resize(image, show1, Size(image.cols*0.4, image.rows *0.4));
+        imshow("win1", show1);
+        resize(gray_image, show2, Size(gray_image.cols*0.4, gray_image.rows *0.4));
+        imshow("win2", show2);
         cout << "Presiona cualquier tecla para capturar" << endl;
         while (true) {
 
@@ -126,8 +126,10 @@ void calibrate() {
         capture >> image;
         undistort(image, imageUndistorted, intrinsic, distCoeffs);
 
-        imshow("win1", image);
-        imshow("win2", imageUndistorted);
+        resize(image, show1, Size(image.cols*0.4, image.rows *0.4));
+        imshow("win1", show1);
+        resize(imageUndistorted, show2, Size(imageUndistorted.cols*0.4, imageUndistorted.rows *0.4));
+        imshow("win2", show2);
         waitKey(1);
     }
 }
@@ -182,7 +184,7 @@ int main(int argc, char * argv[]) {
             capture.read(captura);
             //cvtColor(panorama, panorama, COLOR_BGR2GRAY);
 
-            resize(captura, show, Size(panorama.cols*0.4, panorama.rows *0.4));
+            resize(captura, show, Size(captura.cols*0.4, captura.rows *0.4));
             imshow("Imagen siguiente", show);
             if (waitKey(30) >= 0) {
                 break;
@@ -250,8 +252,10 @@ int main(int argc, char * argv[]) {
         Mat img_matches1, img_matches2;
         drawMatches(panorama, keypoints1, captura, keypoints2, matchesCorrec, img_matches1);
         drawMatches(panorama, keypoints1, captura, keypoints2, matches2, img_matches2);
-        imshow("matches 1", img_matches1);
-        imshow("matches 2", img_matches2);
+        resize(img_matches1, show1, Size(img_matches1.cols*0.4, img_matches1.rows *0.4));
+        imshow("matches 1", show1);
+        //resize(img_matches2, show2, Size(img_matches2.cols*0.4, img_matches2.rows *0.4));
+        //imshow("matches 2", show2);
         
         std::vector<Point2f> puntosImagen;
         std::vector<Point2f> puntosPanorama;
@@ -333,11 +337,8 @@ int main(int argc, char * argv[]) {
       
 
         resize(result, showPano, Size(result.cols*0.2, result.rows *0.2));
-
-
-
-        
         imshow("Panorama", showPano);
+
         cout << "Presiona s/n para aceptar o cancelar la adicion de esa imagen" << endl;
         char key;
         while(true) {
